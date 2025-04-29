@@ -1,21 +1,35 @@
 import tiktoken
-from typing import List, Dict
 
-class DocumentProcessor:
-    def __init__(self):
-        self.tokenizer = tiktoken.get_encoding("cl100k_base")
-    
-    def process(self, text: str, doc_id: str) -> List[Dict]:
-        chunks = []
-        words = text.split()
-        chunk_size = 512
-        overlap = 51  # ~10%
-        
-        for i in range(0, len(words), chunk_size - overlap):
-            chunk = ' '.join(words[i:i + chunk_size])
+def chunk_text(sections, doc_id="unknown", full_path=None, max_tokens=512, overlap=50):
+    """
+    Découpe les sections en chunks de max_tokens avec overlap, en gardant les métadonnées.
+    """
+    encoding = tiktoken.get_encoding("cl100k_base")
+    chunks = []
+    chunk_id = 0
+
+    for section in sections:
+        section_title = section["title"]
+        text = section["text"]
+        tokens = encoding.encode(text, allowed_special="all")
+
+        start = 0
+        while start < len(tokens):
+            end = min(start + max_tokens, len(tokens))
+            chunk_tokens = tokens[start:end]
+            chunk_text = encoding.decode(chunk_tokens)
+
             chunks.append({
-                "text": chunk,
                 "doc_id": doc_id,
-                "tokens": len(self.tokenizer.encode(chunk))
+                "chunk_num": chunk_id,
+                "section": section_title,
+                "full_path": full_path or "",
+                "text": chunk_text.strip()
             })
-        return chunks
+
+            chunk_id += 1
+            start += max_tokens - overlap
+            if end == len(tokens):
+                break
+
+    return chunks
