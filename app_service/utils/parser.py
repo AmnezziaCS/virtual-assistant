@@ -3,39 +3,20 @@ import re
 import unicodedata
 
 def clean_wiki_markup(text):
-    """
-    Nettoie les balises wiki, templates, caractères spéciaux, et normalise les encodages.
-    """
-    # Supprimer les templates {{...}} et {Template:...}
-    text = re.sub(r'\{\{[^}]+\}\}', '', text)
-    text = re.sub(r'\{Template:[^}]+\}', '', text)
+    #le parseur pour gérer les templates proprement
+    code = mwparserfromhell.parse(text)
+    text = code.strip_code()
 
-    # Supprimer les fichiers [[File:...]]
-    text = re.sub(r'\[\[File:[^\]]+\]\]', '', text)
-
-    # Transformer les liens internes [[...]] en texte brut
-    text = re.sub(r'\[\[([^|\]]*\|)?([^\]]+)\]\]', r'\2', text)
-
-    # Supprimer les balises de mise en forme (gras, italique)
-    text = re.sub(r"''+", '', text)
-
-    # Supprimer les balises HTML
+    # Supprimer les balises HTML résiduelles
     text = re.sub(r'<[^>]+>', '', text)
-
-    # Supprimer les titres vides ou délimiteurs
-    text = re.sub(r'^=+\s*=+$', '', text, flags=re.MULTILINE)
-
-    # Supprimer les espaces avant la ponctuation
+    
+    # Nettoyages généraux
     text = re.sub(r'\s+([.,:;!?])', r'\1', text)
-
-    # Normaliser les encodages (é → e, etc.)
     text = unicodedata.normalize('NFKC', text)
-
-    # Remplacer les sauts de ligne et espaces multiples
     text = re.sub(r'\s*\n\s*', ' ', text).strip()
     text = re.sub(r'\s+', ' ', text)
 
-    return text.strip()
+    return text
 
 def parse_document(text):
     """
